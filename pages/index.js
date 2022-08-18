@@ -1,8 +1,175 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+import Head from "next/head";
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import styles from "../styles/Home.module.css";
+import api from "../services/api";
+import UsersList from "../components/UsersList";
+import axios from "axios";
 
-export default function Home() {
+export default function Home({ data }) {
+  const [isFormOpen, setisFormOpen] = useState(true);
+  const [firstName, setfirstName] = useState("");
+  const [lastName, setlastName] = useState("");
+  const [email, setemail] = useState("");
+  const [salary, setsalary] = useState("");
+  const [birthday, setbirthday] = useState("");
+  const [isActive, setisActive] = useState(false);
+  const [isValidForm, setisValidForm] = useState([]);
+  const [id, setid] = useState(null);
+  const [allUsers, setallUsers] = useState([]);
+  // console.log(data.data, "res in funt");
+  useEffect(() => {
+    // api.get("/api").then((data) => {
+    setallUsers(data.data);
+    // console.log("object");
+    // });
+  }, []);
+
+  const formValidator = () => {
+    // if (!isValidForm.length) {
+    if (!firstName && !lastName && !email && !salary) {
+      if (!firstName && !isValidForm.length) {
+        setisValidForm((old) => [
+          ...old,
+          {
+            errorType: firstName,
+            error: "First Name is not valid",
+          },
+        ]);
+        // return true;
+      }
+      if (!lastName && !isValidForm.length) {
+        setisValidForm((old) => [
+          ...old,
+          {
+            errorType: lastName,
+            error: "Last Name is not valid",
+          },
+        ]);
+        // return isValidForm;
+        // return true;
+      }
+
+      if (!email && !isValidForm.length) {
+        setisValidForm((old) => [
+          ...old,
+          {
+            errorType: email,
+            error: "Email is not valid",
+          },
+        ]);
+        // return true;
+      }
+      if (!salary && !isValidForm.length) {
+        setisValidForm((old) => [
+          ...old,
+          {
+            errorType: salary,
+            error: "Salary is not valid",
+          },
+        ]);
+        // return true;
+      }
+      return true;
+    } else if (firstName && lastName && email && salary) {
+      setisValidForm([]);
+      return false;
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (formValidator()) {
+      console.log(isValidForm, "isvalidForm");
+      return;
+    }
+
+    try {
+      const { data } = await api.post("/api", {
+        firstName,
+        lastName,
+        email,
+        salary,
+        birthday,
+        isActive,
+      });
+      setallUsers((old) => [
+        ...old,
+        { firstName, lastName, email, salary, birthday, isActive },
+      ]);
+      setfirstName("");
+      setlastName("");
+      setbirthday("");
+      setsalary("");
+      setemail("");
+      setisActive(false);
+      setid(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleEditUpdate = async (item) => {
+    setid(item._id);
+    setfirstName(item.firstName);
+    setlastName(item.lastName);
+    setbirthday(item.birthday.slice(0, 10));
+    setsalary(item.salary);
+    setemail(item.email);
+    setisActive(item.isActive);
+    setisFormOpen(true);
+    setisValidForm([]);
+  };
+
+  const handleUpdate = async (e) => {
+    try {
+      api.put(`/api/${id}`, {
+        firstName,
+        lastName,
+        email,
+        salary,
+        birthday,
+        isActive,
+      });
+      const userFind = allUsers.find((item) => item._id === id);
+      setallUsers(allUsers.filter((item) => item._id !== id));
+      setallUsers((old) => [
+        ...old,
+        { _id: id, firstName, lastName, email, salary, birthday, isActive },
+      ]);
+      setfirstName("");
+      setlastName("");
+      setbirthday("");
+      setsalary("");
+      setemail("");
+      setisActive("");
+      setid(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      api.delete(`/api/${id}`);
+      setallUsers(allUsers.filter((item) => item._id !== id));
+      setisValidForm([]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  function handleReset() {
+    setfirstName("");
+    setlastName("");
+    setbirthday("");
+    setsalary("");
+    setemail("");
+    setisActive(false);
+    setid(null);
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -11,59 +178,143 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
+      <button
+        className={styles.addEmpButton}
+        onClick={() => setisFormOpen(!isFormOpen)}
+      >
+        ADD EMPLOYEE
+      </button>
+      {isFormOpen && (
+        <main className={styles.main}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-evenly",
+              width: "100%",
+            }}
           >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
+            <div style={{ display: "grid", gap: "10px" }}>
+              <input
+                type="text"
+                value={firstName}
+                placeholder="firstName"
+                onChange={(e) => {
+                  setfirstName(e.target.value);
+                }}
+              />
+              <input
+                type="email"
+                required
+                value={email}
+                placeholder="email"
+                onChange={(e) => setemail(e.target.value)}
+              />
+              <input
+                type="date"
+                value={birthday}
+                placeholder="Birthday"
+                onChange={(e) => setbirthday(e.target.value)}
+              />
+            </div>
+            <div style={{ display: "grid", gap: "10px" }}>
+              <input
+                type="text"
+                value={lastName}
+                placeholder="lastName"
+                onChange={(e) => setlastName(e.target.value)}
+              />
+              <input
+                type="number"
+                value={salary}
+                placeholder="salary"
+                onChange={(e) => setsalary(e.target.value)}
+              />
 
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+              {id ? (
+                <div>
+                  <label htmlFor="active">Active</label>
+                  <input
+                    type="radio"
+                    value={true}
+                    checked={isActive}
+                    name="isActive"
+                    id="active"
+                    onChange={(e) => setisActive(true)}
+                  />
 
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
+                  <label htmlFor="notActive">Not Active</label>
+                  <input
+                    type="radio"
+                    value={false}
+                    name="isActive"
+                    checked={!isActive}
+                    id="notActive"
+                    onChange={(e) => setisActive(false)}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="active">Active</label>
+                  <input
+                    type="radio"
+                    value={true}
+                    // checked={isActive}
+                    name="isActive"
+                    id="active"
+                    onChange={(e) => setisActive(true)}
+                  />
+
+                  <label htmlFor="notActive">Not Active</label>
+                  <input
+                    type="radio"
+                    value={false}
+                    name="isActive"
+                    // checked={!isActive}
+                    id="notActive"
+                    onChange={(e) => setisActive(false)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <span>
+            <button
+              className={styles.submitButton}
+              onClick={(e) => {
+                id ? handleUpdate(e) : handleSubmit(e);
+              }}
+            >
+              {id ? <span>Update</span> : <span>Submit</span>}
+            </button>
+            <button onClick={() => handleReset()}>Reset</button>
           </span>
-        </a>
-      </footer>
+          {isValidForm.length
+            ? isValidForm.map((val, index) => {
+                return (
+                  <div style={{ color: "red" }} key={index}>
+                    {val.error +
+                      `(${!val.errorType ? "Empty" : val.errorType})`}
+                  </div>
+                );
+              })
+            : null}
+        </main>
+      )}
+      {allUsers.length ? (
+        <UsersList
+          data={allUsers}
+          handleEditUpdate={handleEditUpdate}
+          handleUpdate={handleUpdate}
+          handleDelete={handleDelete}
+        />
+      ) : null}
     </div>
-  )
+  );
+}
+
+export async function getServerSideProps() {
+  const { data } = await axios.get("http://localhost:3000/api");
+  return {
+    props: { data }, // will be passed to the page component as props
+  };
 }
